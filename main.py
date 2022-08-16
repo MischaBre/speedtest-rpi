@@ -1,11 +1,24 @@
-import string
-from datetime import date, datetime
+##############################
+# speedtest
+#   by Michael Gemsa
+#   22-08-16
+#
+# uses:
+#   python                  3.7.13
+#   mysql-connector-python  8.0.30
+#   speedtest-cli           2.1.3
+#
+
+
+
+from datetime import datetime
 import speedtest
 import mysql.connector
 
 #GLOBALS
 CONVERT_TO_MBIT = 1_000_000
 MAX_SERVER = 5
+
 DB_USER = 'root'
 DB_PW = 'lm_mysql'
 DB_HOST = 'localhost'
@@ -35,9 +48,11 @@ def speedTest():
     return ip, down, up
 
 
-# insertData creates the mysql cursor. Inserts ip, down, up in table lm_speedtest. Takes Strings of DB_USER and DB_DB.
-# attr:     user (String), db (String)
-# return:   Union[CMySQLConnection, MySQLConnection]
+# insertData creates the mysql cursor. Inserts ip, down, up in table lm_speedtest.
+# Takes Strings of DB_USER, DB_PW, DB_HOST, DB_DB from Globals and ip, down, up as attr.
+# Catches any mysql error.
+# attr:     ip (String), down (double), up (double)
+# return:   void
 def insertData(ip, down, up):
     try:
         cnx = mysql.connector.connect(user=DB_USER, password=DB_PW, host=DB_HOST, database=DB_DB)
@@ -55,6 +70,7 @@ def insertData(ip, down, up):
 
     except mysql.connector.Error as err:
         print("Fehler! {}".format(err))
+
     finally:
         if crsr:
             crsr.close()
@@ -63,11 +79,12 @@ def insertData(ip, down, up):
 
 ### main
 def main():
-    errors = ''
+    # SETUP
     ip = '0.0.0.0'
     down = up = 0.0
     errors = ''
     try:
+        # try speedtest
         ip, down, up = speedTest()
     except speedtest.ConfigRetrievalError as err:
         print('Fehler! {}'.format(err))
@@ -77,6 +94,7 @@ def main():
         errors = str(err)
 
     if not errors:
+        # if no errors, insert ip, down, up in mysql-db
         insertData(ip, down, up)
 
 
