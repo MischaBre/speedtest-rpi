@@ -1,0 +1,18 @@
+E: speedtest
+  # id
+    datum
+    ip
+    download-speed
+    upload-speed
+    error
+
+Speedtest(id, datum, ip, download-speed, upload-speed, error)
+
+create table speedtest (
+    id int auto_increment,
+    datum datetime not null,
+    ip varchar(15) not null,
+    downspeed double,
+    upspeed double,
+    error varchar(255),
+    primary key (id))
