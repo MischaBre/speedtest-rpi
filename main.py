@@ -96,6 +96,9 @@ def main():
     if not errors:
         # if no errors, insert ip, down, up in mysql-db
         insertData(ip, down, up)
+    else:
+        # else insert row with 0s for error-indication
+        insertData('0.0.0.0', 0.0, 0.0)
 
 
 if __name__ == '__main__':
