@@ -35,8 +35,8 @@ DB_PW = DB_FILELINES[1].split("=")[1].rstrip('\n')
 DB_HOST = DB_FILELINES[2].split("=")[1].rstrip('\n')
 DB_DB = DB_FILELINES[3].split("=")[1].rstrip('\n')
 DB_TABLE = DB_FILELINES[4].split("=")[1].rstrip('\n')
-DB_INSERT = ('insert into lm_speedtest ' \
-            '(datum, ip, isp, downspeed, upspeed) ' \
+DB_INSERT = ('insert into lm_speedtest '
+            '(datum, ip, isp, downspeed, upspeed) '
             'values (%s, %s, %s, %s, %s)')
 
 
@@ -44,16 +44,16 @@ DB_INSERT = ('insert into lm_speedtest ' \
 
 ### createLogger
 def createLogger() -> (logging.Logger, logging.Handler):
-    logger = logging.getLogger('speedtest_log')
+    logger_f = logging.getLogger('speedtest_log')
     logFormatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    rotLog = logging.handlers.RotatingFileHandler(
+    rotLog_f = logging.handlers.RotatingFileHandler(
         filename=LOG_FILE, maxBytes=LOG_MAXBYTES, backupCount=LOG_BACKUPCOUNT)
-    logger.setLevel(LOG_LEVEL)
-    rotLog.setFormatter(logFormatter)
-    logger.addHandler(rotLog)
+    logger_f.setLevel(LOG_LEVEL)
+    rotLog_f.setFormatter(logFormatter)
+    logger_f.addHandler(rotLog_f)
 
-    return logger, rotLog
+    return logger_f, rotLog_f
 
 
 ### speedTest
