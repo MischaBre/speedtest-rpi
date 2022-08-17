@@ -12,6 +12,8 @@
 
 ### IMPORTS
 import logging
+import sys
+
 import speedtest
 import mysql.connector
 from datetime import datetime
@@ -35,10 +37,20 @@ DB_PW = DB_FILELINES[1].split("=")[1].rstrip('\n')
 DB_HOST = DB_FILELINES[2].split("=")[1].rstrip('\n')
 DB_DB = DB_FILELINES[3].split("=")[1].rstrip('\n')
 DB_TABLE = DB_FILELINES[4].split("=")[1].rstrip('\n')
-DB_INSERT = ('insert into lm_speedtest '
-            '(datum, ip, isp, downspeed, upspeed) '
-            'values (%s, %s, %s, %s, %s)')
 
+DB_INSERT = ('insert into {} '
+             '(datum, ip, isp, downspeed, upspeed, error) '
+             'values (%s, %s, %s, %s, %s, %s)').format(DB_TABLE)
+DB_SETUP = ('use {}').format(DB_DB)
+DB_SETUP2 = ('create table {} ('
+            'id int auto_increment,'
+            'datum datetime not null,'
+            'ip varchar(15) not null,'
+            'downspeed decimal(5,2) not null,'
+            'upspeed decimal(5,2) not null,'
+            'isp varchar(50) not null,'
+            'error varchar(100),'
+            'primary key (id))').format(DB_TABLE)
 
 ### FUNCTIONS
 
@@ -59,8 +71,8 @@ def createLogger() -> (logging.Logger, logging.Handler):
 ### speedTest
 # speedTest makes the speedtest and returns up, downloadspeed and uploadspeed in MBIT/s
 # attr:     st (speedtest.net object)
-# return:   ip (String), down (double), up (double)
-def speedTest():
+# return:   ip (String), down (float), up (float)
+def speedTest() -> (str, str, float, float):
     # create speedtest Object
     st = speedtest.Speedtest()
     st.get_closest_servers(MAX_SERVER)
@@ -76,31 +88,67 @@ def speedTest():
     return ip, isp, down, up
 
 
-### insertData
-# insertData creates the mysql cursor. Inserts ip, down, up in table lm_speedtest.
-# Takes Strings of DB_USER, DB_PW, DB_HOST, DB_DB from Globals and ip, down, up as attr.
-# Catches any mysql error.
-# attr:     ip (String), down (double), up (double)
-# return:   void
-def insertData(ip, isp, down, up):
+### createCursor()
+# creates mysql-cursor for mysql operations
+# return:   mysql.connector, cursor
+# raises:   mysql.connector.Error
+def createCursor():
+    try:
+        cn = mysql.connector.connect(user=DB_USER, password=DB_PW, host=DB_HOST, database=DB_DB)
+        cur = cn.cursor()
+    except mysql.connector.Error as err:
+        raise err
+    return cn, cur
+
+
+### setupDB
+def setupDB() -> int:
     cnx = None
     cursor = None
     try:
         # create sql-cursor
-        cnx = mysql.connector.connect(user=DB_USER, password=DB_PW, host=DB_HOST, database=DB_DB)
-        cursor = cnx.cursor()
+        cnx, cursor = createCursor()
+        logger.info('cursor created')
+
+        # use DB_TABLE;
+        cursor.execute(DB_SETUP)
+
+        # create table DB_TABLE ( ... )
+        cursor.execute(DB_SETUP2)
+        logger.info('tables created')
+
+        cnx.commit()
+        logger.info('committed')
+    except mysql.connector.Error as err:
+        logger.error('Fehler! {}'.format(err))
+        return 2
+    return 0
+
+### insertData
+# insertData takes mysql-cursor. Inserts ip, down, up in table lm_speedtest.
+# Takes Strings of DB_USER, DB_PW, DB_HOST, DB_DB from Globals and ip, down, up as attr.
+# Catches any mysql error.
+# attr:     ip (String), down (double), up (double)
+# return:   void
+def insertData(ip, isp, down, up, error = '') -> None:
+    cnx = None
+    cursor = None
+    try:
+        # create sql-cursor
+        cnx, cursor = createCursor()
         logger.info("cursor created")
 
         # execute INSERT...
-        insertValues = (datetime.now(), ip, isp, down, up)
+        insertValues = (datetime.now(), ip, isp, down, up, error)
         cursor.execute(DB_INSERT, insertValues)
         logger.info('data inserted')
 
         # commit
         cnx.commit()
+        logger.info('committed')
 
     except mysql.connector.Error as err:
-        logger.error("Fehler! {}".format(err))
+        raise err
 
     finally:
         # close all possible sql connection
@@ -112,32 +160,41 @@ def insertData(ip, isp, down, up):
 
 
 ### main
-def main():
-    # SETUP
-    ip = '0.0.0.0'
-    isp = '-'
-    down = up = 0.0
-    errors = ''
+def main() -> int:
     try:
         # try speedtest
         ip, isp, down, up = speedTest()
-    except speedtest.ConfigRetrievalError as err:
-        logger.error('Fehler! {}'.format(err))
-        errors = str(err)
-    except ValueError as err:
-        logger.error('Fehler! {}'.format(err))
-        errors = str(err)
-
-    if not errors:
-        # if no errors, insert ip, down, up in mysql-db
+        # try insert ip, down, up in mysql-db
         insertData(ip, isp, down, up)
-    else:
-        # else insert row with 0s for error-indication
-        insertData('0.0.0.0', '-', 0.0, 0.0)
+        # everything went well. return 0 to main
+        return 0
+    except speedtest.ConfigRetrievalError as err:
+        logger.error('Speedtest-Fehler! {}'.format(err))
+        try:
+            insertData('0.0.0.0', '-', 0.0, 0.0, str(err))
+        except mysql.connector.Error as db_err:
+            logger.error("Fehler! {}".format(db_err))
+            return 1
+        return 1
+    except ValueError as err:
+        logger.error('Speedtest-Fehler! {}'.format(err))
+        try:
+            insertData('0.0.0.0', '-', 0.0, 0.0, str(err))
+        except mysql.connector.Error as db_err:
+            logger.error("Fehler! {}".format(db_err))
+            return 1
+        return 1
+    except mysql.connector.Error as db_err:
+        logger.error("Fehler! {}".format(db_err))
+        return 1
 
 
 ### PROGRAM START
 if __name__ == '__main__':
     # create global logger
     logger, rotLog = createLogger()
-    main()
+    args = sys.argv
+    if args and args[0] == 'setup':
+        sys.exit(setupDB())
+    else:
+        sys.exit(main())
