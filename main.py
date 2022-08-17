@@ -11,13 +11,20 @@
 
 
 ### IMPORTS
-from datetime import datetime
+import logging
 import speedtest
 import mysql.connector
+from datetime import datetime
+from logging.handlers import RotatingFileHandler
 
 ### GLOBALS
 CONVERT_TO_MBIT = 1_000_000
 MAX_SERVER = 5
+
+LOG_LEVEL = logging.INFO
+LOG_FILE = 'speedtest.log'
+LOG_MAXBYTES = 1*1024*1024
+LOG_BACKUPCOUNT = 1
 
 DB_USER = 'root'
 DB_PW = 'lm_mysql'
@@ -31,6 +38,20 @@ DB_INSERT = ('insert into lm_speedtest ' \
 
 ### FUNCTIONS
 
+### createLogger
+def createLogger() -> (logging.Logger, logging.Handler):
+    logger = logging.getLogger('speedtest_log')
+    logFormatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    rotLog = logging.handlers.RotatingFileHandler(
+        filename=LOG_FILE, maxBytes=LOG_MAXBYTES, backupCount=LOG_BACKUPCOUNT)
+    logger.setLevel(LOG_LEVEL)
+    rotLog.setFormatter(logFormatter)
+    logger.addHandler(rotLog)
+
+    return logger, rotLog
+
+
 ### speedTest
 # speedTest makes the speedtest and returns up, downloadspeed and uploadspeed in MBIT/s
 # attr:     st (speedtest.net object)
@@ -39,14 +60,14 @@ def speedTest():
     # create speedtest Object
     st = speedtest.Speedtest()
     st.get_closest_servers(MAX_SERVER)
-    print("speedtest created")
+    logger.info("speedtest created")
 
-    # run speedtest, store result in ip, down, up
+    # run speedtest, store result in ip, isp, down, up
     ip = st.config.get('client').get('ip')
     isp = st.config.get('client').get('isp')
     down = st.download() / CONVERT_TO_MBIT
     up = st.upload() / CONVERT_TO_MBIT
-    print("speedtest done")
+    logger.info("speedtest done")
 
     return ip, isp, down, up
 
@@ -64,18 +85,18 @@ def insertData(ip, isp, down, up):
         # create sql-cursor
         cnx = mysql.connector.connect(user=DB_USER, password=DB_PW, host=DB_HOST, database=DB_DB)
         cursor = cnx.cursor()
-        print("cursor created")
+        logger.info("cursor created")
 
         # execute INSERT...
         insertValues = (datetime.now(), ip, isp, down, up)
         cursor.execute(DB_INSERT, insertValues)
-        print('data inserted')
+        logger.info('data inserted')
 
         # commit
         cnx.commit()
 
     except mysql.connector.Error as err:
-        print("Fehler! {}".format(err))
+        logger.error("Fehler! {}".format(err))
 
     finally:
         # close all possible sql connection
@@ -83,7 +104,7 @@ def insertData(ip, isp, down, up):
             cursor.close()
         if cnx:
             cnx.close()
-        print('db closed')
+        logger.info('db closed')
 
 
 ### main
@@ -97,10 +118,10 @@ def main():
         # try speedtest
         ip, isp, down, up = speedTest()
     except speedtest.ConfigRetrievalError as err:
-        print('Fehler! {}'.format(err))
+        logger.error('Fehler! {}'.format(err))
         errors = str(err)
     except ValueError as err:
-        print('Fehler! {}'.format(err))
+        logger.error('Fehler! {}'.format(err))
         errors = str(err)
 
     if not errors:
@@ -113,4 +134,6 @@ def main():
 
 ### PROGRAM START
 if __name__ == '__main__':
+    # create global logger
+    logger, rotLog = createLogger()
     main()
