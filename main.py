@@ -26,11 +26,13 @@ LOG_FILE = 'speedtest.log'
 LOG_MAXBYTES = 1*1024*1024
 LOG_BACKUPCOUNT = 1
 
-DB_USER = 'root'
-DB_PW = 'lm_mysql'
-DB_HOST = 'localhost'
-DB_DB = 'lm_test'
-DB_TABLE = 'lm_speedtest'
+DB_LOGIN_FILE = 'mysql.cfg'
+DB_FILELINES = open(DB_LOGIN_FILE, 'r').readlines()
+DB_USER = DB_FILELINES[0].split("=")[1].rstrip('\n')
+DB_PW = DB_FILELINES[1].split("=")[1].rstrip('\n')
+DB_HOST = DB_FILELINES[2].split("=")[1].rstrip('\n')
+DB_DB = DB_FILELINES[3].split("=")[1].rstrip('\n')
+DB_TABLE = DB_FILELINES[4].split("=")[1].rstrip('\n')
 DB_INSERT = ('insert into lm_speedtest ' \
             '(datum, ip, isp, downspeed, upspeed) ' \
             'values (%s, %s, %s, %s, %s)')
