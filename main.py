@@ -21,11 +21,13 @@ from logging.handlers import RotatingFileHandler
 CONVERT_TO_MBIT = 1_000_000
 MAX_SERVER = 5
 
+#
 LOG_LEVEL = logging.INFO
 LOG_FILE = 'speedtest.log'
 LOG_MAXBYTES = 1*1024*1024
 LOG_BACKUPCOUNT = 1
 
+# define MYSQL GLOBALS from mysql.cfg
 DB_LOGIN_FILE = 'mysql.cfg'
 DB_FILELINES = open(DB_LOGIN_FILE, 'r').readlines()
 DB_USER = DB_FILELINES[0].split("=")[1].rstrip('\n')
