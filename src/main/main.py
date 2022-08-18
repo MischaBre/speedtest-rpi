@@ -46,10 +46,15 @@ LOG_FILE = 'speedtest.log'
 LOG_MAXBYTES = 1 * 1024 * 1024
 LOG_BACKUPCOUNT = 1
 
-# define MYSQL GLOBALS from mysql.cfg
-DB_LOGIN_FILE = './src/main/mysql.cfg'
-with open(DB_LOGIN_FILE, 'r') as DB_FILE:
-    DB_FILELINES = DB_FILE.readlines()
+# define MYSQL GLOBALS load from mysql.cfg
+DB_LOGIN_FILE = './mysql.cfg'
+try:
+    with open(DB_LOGIN_FILE, 'r') as DB_FILE:
+        DB_FILELINES = DB_FILE.readlines()
+except FileNotFoundError as err:
+    print("Error: could not find mysql.cfg. Edit the mysql_example.cfg and rename it mysql.cfg")
+    sys.exit(2)
+
 DB_USER = DB_FILELINES[0].split("=")[1].rstrip('\n')
 DB_PW = DB_FILELINES[1].split("=")[1].rstrip('\n')
 DB_HOST = DB_FILELINES[2].split("=")[1].rstrip('\n')
@@ -218,6 +223,7 @@ def main() -> int:
         # couldnt insert empty data
         logger.error("MySQL-Fehler! {}".format(db_err))
         return 2
+
 
 ### PROGRAM START
 if __name__ == '__main__':

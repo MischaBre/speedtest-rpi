@@ -19,6 +19,7 @@
 
   is a script to be run via cronjob for periodically testing the
   speed of the internet connection.
+
   You need a mysql database. The file mysql.cfg specifies the connection details to your database.
   the script runs, makes a speedtest with speedtest.net, returns download speed
   and upload speed in MBIT/s and adds the results to your database.
@@ -30,4 +31,9 @@
   your need a sql-user with create table and insert privileges.
   
   creates a table with:
-      id int, datum datetime, ip varchar, downspeed decimal, upspeed decimal, isp varchar, error varchar
+
+    id int | datum datetime | ip varchar      | downspeed decimal | upspeed decimal | isp varchar | error varchar
+         1 |    2022-AUG-22 | 123.456.123.123 |            123.45 |           12.34 |     telecom | -
+         2 |                |                 |                   |                 |             | <error xyz>
+
+  in release included is a mysql-example.cfg you have to rename to mysql.cfg and put your db-connection info into.
