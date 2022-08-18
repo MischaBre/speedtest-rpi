@@ -47,7 +47,7 @@ LOG_MAXBYTES = 1 * 1024 * 1024
 LOG_BACKUPCOUNT = 1
 
 # define MYSQL GLOBALS from mysql.cfg
-DB_LOGIN_FILE = 'mysql.cfg'
+DB_LOGIN_FILE = './src/main/mysql.cfg'
 with open(DB_LOGIN_FILE, 'r') as DB_FILE:
     DB_FILELINES = DB_FILE.readlines()
 DB_USER = DB_FILELINES[0].split("=")[1].rstrip('\n')
@@ -226,7 +226,7 @@ if __name__ == '__main__':
 
     # check if '--setup' is in arguments
     args = sys.argv
-    if args and args[1] == '--setup':
+    if args and args[len(args) - 1] == '--setup':
         sys.exit(setupDB())
     else:
         sys.exit(main())
