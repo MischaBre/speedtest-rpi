@@ -3,4 +3,4 @@
 !/src/log.test.1
 !/.python-version
 !/src/main/speedtest.log
-!/src/test.py
+!/src/test.py!/src/test.py
