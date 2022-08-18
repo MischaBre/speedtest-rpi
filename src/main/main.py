@@ -48,7 +48,8 @@ LOG_BACKUPCOUNT = 1
 
 # define MYSQL GLOBALS from mysql.cfg
 DB_LOGIN_FILE = 'mysql.cfg'
-DB_FILELINES = open(DB_LOGIN_FILE, 'r').readlines()
+with open(DB_LOGIN_FILE, 'r') as DB_FILE:
+    DB_FILELINES = DB_FILE.readlines()
 DB_USER = DB_FILELINES[0].split("=")[1].rstrip('\n')
 DB_PW = DB_FILELINES[1].split("=")[1].rstrip('\n')
 DB_HOST = DB_FILELINES[2].split("=")[1].rstrip('\n')
@@ -196,44 +197,36 @@ def insertData(ip, isp, down, up, error='') -> None:
 # return:   int     0: ran perfectly,   1: speedtest-error,     2: mysql-error
 def main() -> int:
     try:
-        # try speedtest
-        ip, isp, down, up = speedTest()
-        # try insert ip, down, up in mysql-db
-        insertData(ip, isp, down, up)
-        # everything went well. return 0 to main
-        return 0
-    except speedtest.ConfigRetrievalError as err:
-        logger.error('Speedtest-Fehler! {}'.format(err))
         try:
+            # try speedtest
+            ip, isp, down, up = speedTest()
+            # try insert ip, down, up in mysql-db
+            insertData(ip, isp, down, up)
+            # everything went well. return 0 to main
+            return 0
+        except speedtest.ConfigRetrievalError as err:
+            logger.error('Speedtest-Fehler! {}'.format(err))
             # insert empty data with error message
             insertData('0.0.0.0', '-', 0.0, 0.0, str(err))
-        except mysql.connector.Error as db_err:
-            # couldnt insert empty data
-            logger.error("MySQL-Fehler! {}".format(db_err))
-            return 2
-        return 1
-    except ValueError as err:
-        logger.error('Speedtest-Fehler! {}'.format(err))
-        try:
+            return 1
+        except ValueError as err:
+            logger.error('Speedtest-Fehler! {}'.format(err))
             # insert empty data with error message
             insertData('0.0.0.0', '-', 0.0, 0.0, str(err))
-        except mysql.connector.Error as db_err:
-            # couldnt insert empty data
-            logger.error("MySQL-Fehler! {}".format(db_err))
-            return 2
-        return 1
+            return 1
     except mysql.connector.Error as db_err:
-        # couldnt insert speedtest data
+        # couldnt insert empty data
         logger.error("MySQL-Fehler! {}".format(db_err))
         return 2
-
 
 ### PROGRAM START
 if __name__ == '__main__':
     # create global logger
     logger, rotLog = createLogger()
+
+    # check if '--setup' is in arguments
     args = sys.argv
-    if args and args[0] == '--setup':
+    if args and args[1] == '--setup':
         sys.exit(setupDB())
     else:
         sys.exit(main())
