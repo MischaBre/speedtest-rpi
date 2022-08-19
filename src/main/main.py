@@ -36,18 +36,19 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 ########################### GLOBALS
+WORKING_DIR = '/home/pi/speedtest/src/main/'
 # SPEEDTEST_GLOBALS
 CONVERT_TO_MBIT = 1_000_000
 MAX_SERVER = 5
 
 # LOG_GLOBALS
 LOG_LEVEL = logging.INFO
-LOG_FILE = 'speedtest.log'
+LOG_FILE = WORKING_DIR + 'speedtest.log'
 LOG_MAXBYTES = 1 * 1024 * 1024
 LOG_BACKUPCOUNT = 1
 
 # define MYSQL GLOBALS load from mysql.cfg
-DB_LOGIN_FILE = './mysql.cfg'
+DB_LOGIN_FILE = WORKING_DIR + 'mysql.cfg'
 try:
     with open(DB_LOGIN_FILE, 'r') as DB_FILE:
         DB_FILELINES = DB_FILE.readlines()
