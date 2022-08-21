@@ -36,7 +36,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 ########################### GLOBALS
-WORKING_DIR = '/home/pi/speedtest/src/main/'
+WORKING_DIR = '/Users/michaelgemsa/Desktop/python_Projects/speedtest/'
 # SPEEDTEST_GLOBALS
 CONVERT_TO_MBIT = 1_000_000
 MAX_SERVER = 5
@@ -53,7 +53,7 @@ try:
     with open(DB_LOGIN_FILE, 'r') as DB_FILE:
         DB_FILELINES = DB_FILE.readlines()
 except FileNotFoundError as err:
-    print("Error: could not find mysql.cfg. Edit the mysql_example.cfg and rename it mysql.cfg")
+    logging.error("Error: could not find mysql.cfg. Edit the mysql_example.cfg and rename it mysql.cfg")
     sys.exit(2)
 
 DB_USER = DB_FILELINES[0].split("=")[1].rstrip('\n')
@@ -87,11 +87,13 @@ def createLogger() -> (logging.Logger, logging.Handler):
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     rotLog_f = logging.handlers.RotatingFileHandler(
         filename=LOG_FILE, maxBytes=LOG_MAXBYTES, backupCount=LOG_BACKUPCOUNT)
+    stdoutLog_f = logging.StreamHandler(stream=sys.stdout)
     logger_f.setLevel(LOG_LEVEL)
     rotLog_f.setFormatter(logFormatter)
     logger_f.addHandler(rotLog_f)
+    logger_f.addHandler(stdoutLog_f)
 
-    return logger_f, rotLog_f
+    return logger_f, rotLog_f, stdoutLog_f
 
 
 ### speedTest
@@ -100,16 +102,17 @@ def createLogger() -> (logging.Logger, logging.Handler):
 # return:   ip (String), down (float), up (float)
 def speedTest() -> (str, str, float, float):
     # create speedtest Object
+    logger.info('starting speedtest...')
     st = speedtest.Speedtest()
     st.get_closest_servers(MAX_SERVER)
-    logger.info("speedtest created")
+    logger.info("speedtest created.")
 
     # run speedtest, store result in ip, isp, down, up
     ip = st.config.get('client').get('ip')
     isp = st.config.get('client').get('isp')
     down = st.download() / CONVERT_TO_MBIT
     up = st.upload() / CONVERT_TO_MBIT
-    logger.info("speedtest done")
+    logger.info("speedtest done.")
 
     return ip, isp, down, up
 
@@ -137,19 +140,20 @@ def setupDB() -> int:
     cursor = None
     try:
         # create sql-cursor
+        logger.info('creating cursor...')
         cnx, cursor = createCursor()
-        logger.info('cursor created')
+        logger.info('cursor created.')
 
         # use DB_TABLE;
         cursor.execute(DB_Q_SETUP)
 
         # create table DB_TABLE ( ... )
         cursor.execute(DB_Q_SETUP2)
-        logger.info('tables created')
+        logger.info('tables created.')
 
         # commit
         cnx.commit()
-        logger.info('committed')
+        logger.info('committed.')
     except mysql.connector.Error as err:
         logger.error('Fehler! {}'.format(err))
         return 2
@@ -159,7 +163,7 @@ def setupDB() -> int:
             cursor.close()
         if cnx:
             cnx.close()
-        logger.info('db closed')
+        logger.info('db closed.')
     return 0
 
 
@@ -174,17 +178,18 @@ def insertData(ip, isp, down, up, error='') -> None:
     cursor = None
     try:
         # create sql-cursor
+        logger.info('creating cursor...')
         cnx, cursor = createCursor()
-        logger.info("cursor created")
+        logger.info("cursor created.")
 
         # execute INSERT...
         insertValues = (datetime.now(), ip, isp, down, up, error)
         cursor.execute(DB_Q_INSERT, insertValues)
-        logger.info('data inserted')
+        logger.info('data inserted.')
 
         # commit
         cnx.commit()
-        logger.info('committed')
+        logger.info('committed.')
 
     except mysql.connector.Error as err:
         # raise mysql-error to main()
@@ -196,7 +201,7 @@ def insertData(ip, isp, down, up, error='') -> None:
             cursor.close()
         if cnx:
             cnx.close()
-        logger.info('db closed')
+        logger.info('db closed.')
 
 
 ### main
@@ -229,7 +234,7 @@ def main() -> int:
 ### PROGRAM START
 if __name__ == '__main__':
     # create global logger
-    logger, rotLog = createLogger()
+    logger, rotLog, stdoutLog = createLogger()
 
     # check if '--setup' is in arguments
     args = sys.argv
