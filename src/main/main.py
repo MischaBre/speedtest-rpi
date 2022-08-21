@@ -36,7 +36,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 ########################### GLOBALS
-WORKING_DIR = '/Users/michaelgemsa/Desktop/python_Projects/speedtest/'
+WORKING_DIR = '/Home/pi/speedtest/'                 # Insert your directory of /src/main/main.py here
 # SPEEDTEST_GLOBALS
 CONVERT_TO_MBIT = 1_000_000
 MAX_SERVER = 5
