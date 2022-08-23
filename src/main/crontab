@@ -1,1 +1,3 @@
+#START CRON
 15,45 * * * * python /app/main.py
+#END CRON
