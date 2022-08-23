@@ -36,7 +36,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 ########################### GLOBALS
-WORKING_DIR = '/Home/pi/speedtest/'                 # Insert your directory of /src/main/main.py here
+WORKING_DIR = ''                 # Insert your directory of /src/main/main.py here
 # SPEEDTEST_GLOBALS
 CONVERT_TO_MBIT = 1_000_000
 MAX_SERVER = 5
@@ -53,6 +53,7 @@ try:
     with open(DB_LOGIN_FILE, 'r') as DB_FILE:
         DB_FILELINES = DB_FILE.readlines()
 except FileNotFoundError as err:
+    print(DB_LOGIN_FILE)
     logging.error("Error: could not find mysql.cfg. Edit the mysql_example.cfg and rename it mysql.cfg")
     sys.exit(2)
 
@@ -124,7 +125,7 @@ def speedTest() -> (str, str, float, float):
 def createCursor():
     try:
         # create mysql.connection and cursor with GLOBALS
-        cn = mysql.connector.connect(user=DB_USER, password=DB_PW, host=DB_HOST, database=DB_DB)
+        cn = mysql.connector.connect(user=DB_USER, password=DB_PW, host=DB_HOST, database=DB_DB, charset='ascii')
         cur = cn.cursor()
     except mysql.connector.Error as err:
         # raise mysql-error to main()
